@@ -1,0 +1,64 @@
+name: Make Version
+
+# Bumps the version from conventional commits since the last tag, updates CHANGELOG.md,
+# and opens a PR with the changes. Merge that PR, then run make-release.yml.
+#
+# Requires "Allow GitHub Actions to create and approve pull requests" in the repository settings.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  bump-version:
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # bump-n-go reads all commits and tags since the last release
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Bump version
+        id: bump-version
+        run: |
+          npx bump-n-go
+          VERSION=$(jq -r .version package.json)
+          echo "Bumped version to $VERSION"
+          echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Update version in lock file
+        env:
+          VERSION: ${{ steps.bump-version.outputs.RELEASE_VERSION }}
+        run: |
+          jq --arg version "$VERSION" '.version = $version | .packages."".version = $version' package-lock.json > package-lock.json.tmp
+          mv package-lock.json.tmp package-lock.json
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump-version.outputs.RELEASE_VERSION }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No releasable changes since the last tag"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH="ci-bump-${GITHUB_RUN_ID}"
+          TITLE="chore: bump version to ${VERSION}"
+          git checkout -b "$BRANCH"
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "$TITLE"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" --title "$TITLE" \
+            --body "Automated version bump from ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"

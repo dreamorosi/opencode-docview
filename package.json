@@ -1,0 +1,56 @@
+{
+  "name": "opencode-docview",
+  "version": "0.0.0",
+  "description": "Markdown doc viewer side panel for the OpenCode TUI, with line numbers and GitHub-style range copying",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dreamorosi/opencode-docview.git"
+  },
+  "homepage": "https://github.com/dreamorosi/opencode-docview#readme",
+  "bugs": {
+    "url": "https://github.com/dreamorosi/opencode-docview/issues"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "tui",
+    "markdown"
+  ],
+  "exports": {
+    "./tui": "./dist/tui.js"
+  },
+  "files": [
+    "dist",
+    "tui.js",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "babel src --out-dir dist --extensions .ts,.tsx --delete-dir-on-start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest --run",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": ">=2.0.32",
+    "@opentui/core": ">=0.5.17",
+    "@opentui/solid": ">=0.5.17",
+    "solid-js": ">=1.9.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.28.0",
+    "@babel/core": "^7.28.0",
+    "@babel/preset-typescript": "^7.27.0",
+    "@opencode/plugin": "2.0.32",
+    "@opencode/theme": "2.0.32",
+    "@opentui/core": "0.5.17",
+    "@opentui/solid": "0.5.17",
+    "@types/node": "^24.0.0",
+    "babel-preset-solid": "1.9.12",
+    "bump-n-go": "^0.3.0",
+    "solid-js": "1.9.12",
+    "typescript": "5.8.2",
+    "vitest": "^5.0.5"
+  }
+}
