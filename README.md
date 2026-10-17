@@ -34,8 +34,10 @@ Add it to `~/.config/opencode/cli.json` and restart the TUI:
 ```sh
 npm install
 npm run typecheck
-npm test
+npm test              # unit tests (vitest)
+npm run test:render   # gutter layout against OpenTUI (bun)
 npm run build
+bun test/e2e/smoke.ts # real OpenCode TUI, needs opencode on PATH and a build
 ```
 
 ## License
