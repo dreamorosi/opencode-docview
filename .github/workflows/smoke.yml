@@ -1,0 +1,86 @@
+name: Smoke Test
+
+# Runs the plugin inside the real OpenCode TUI (test/e2e/smoke.ts) against:
+# - pinned: the OpenCode version in devDependencies (@opencode/plugin)
+# - latest: the newest @opencode/cli release
+#
+# Runs daily so an OpenCode release that breaks the plugin shows up as an issue, and on PRs that change
+# the smoke test itself.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - "test/e2e/**"
+      - ".github/workflows/smoke.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        opencode: [pinned, latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: "npm"
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.3"
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Install OpenCode
+        env:
+          CHANNEL: ${{ matrix.opencode }}
+        run: |
+          if [ "$CHANNEL" = "pinned" ]; then
+            VERSION=$(jq -r '.devDependencies["@opencode/plugin"]' package.json)
+          else
+            VERSION=latest
+          fi
+          npm install --global "@opencode/cli@$VERSION"
+          opencode --version
+      - name: Smoke test
+        run: bun test/e2e/smoke.ts
+
+  report:
+    needs: [smoke]
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open or update the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          TITLE="Smoke test failing against OpenCode"
+          ISSUE=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number')
+          if [ -n "$ISSUE" ]; then
+            gh issue comment "$ISSUE" --body "Still failing: $RUN_URL"
+          else
+            gh issue create --title "$TITLE" --body "The daily smoke test failed: $RUN_URL
+
+          Check which matrix entry failed. If only \`latest\` fails, a new OpenCode release changed something the plugin depends on."
+          fi
