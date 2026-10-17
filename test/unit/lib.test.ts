@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { type Node, blockAnchors, formatRange, parseTarget, renderedAnchors, splitFrontmatter } from "../src/lib.js"
+import { type Node, blockAnchors, formatRange, parseTarget, renderedAnchors, splitFrontmatter } from "../../src/lib.js"
 
 function node(props: Partial<Node> & { screenY: number; height: number }, children: Node[] = []): Node {
   return { id: "node", isDestroyed: false, getChildren: () => children, ...props }

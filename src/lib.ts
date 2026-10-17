@@ -18,6 +18,13 @@ export type RenderedMarkdown = {
   _blockStates: readonly { token: object; renderable: object }[]
 }
 
+// Options for the rendered view's <markdown>. Shared with the render tests so they exercise the same layout.
+export const RENDERED_MARKDOWN = {
+  conceal: true,
+  internalBlockMode: "top-level",
+  tableOptions: { style: "grid", cellPaddingX: 1 },
+} as const
+
 export function formatRange(range: Range) {
   return range.start === range.end ? `#L${range.start}` : `#L${range.start}-L${range.end}`
 }

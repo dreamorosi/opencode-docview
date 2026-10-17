@@ -29,8 +29,9 @@
   "scripts": {
     "build": "babel src --out-dir dist --extensions .ts,.tsx --delete-dir-on-start",
     "typecheck": "tsc --noEmit",
-    "test": "vitest --run",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+    "test": "vitest --run test/unit",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "test:render": "bun test test/render"
   },
   "peerDependencies": {
     "@opencode/plugin": ">=2.0.32",
@@ -46,7 +47,9 @@
     "@opencode/theme": "2.0.32",
     "@opentui/core": "0.5.17",
     "@opentui/solid": "0.5.17",
+    "@types/bun": "^1.4.3",
     "@types/node": "^24.0.0",
+    "@xterm/headless": "^6.0.0",
     "babel-preset-solid": "1.9.12",
     "bump-n-go": "^0.3.0",
     "solid-js": "1.9.12",

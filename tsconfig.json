@@ -7,7 +7,7 @@
     "jsxImportSource": "@opentui/solid",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node", "bun"]
   },
   "include": ["src", "test"]
 }

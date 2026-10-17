@@ -20,6 +20,7 @@ import path from "node:path"
 import {
   dimFrontmatter,
   errorMessage,
+  RENDERED_MARKDOWN,
   formatRange,
   parseTarget,
   renderedAnchors,
@@ -485,10 +486,8 @@ function DocPanel(props: {
               paddingLeft={gutterWidth()}
               content={doc().body}
               syntaxStyle={syntax()}
-              conceal
-              internalBlockMode="top-level"
+              {...RENDERED_MARKDOWN}
               fg={theme().markdown.text}
-              tableOptions={{ style: "grid", cellPaddingX: 1 }}
               renderAfter={drawRenderedGutter}
               onMouseDown={onMouseDown}
               onMouseDrag={onMouseDrag}
