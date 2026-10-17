@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.1](https://github.com/dreamorosi/opencode-docview/compare/v0.1.0...v0.1.1) (2026-10-17)
+
+### Bug Fixes
+
+- keep the doc panel open when a reload fails ([#6](https://github.com/dreamorosi/opencode-docview/issues/6)) ([f5119b3](https://github.com/dreamorosi/opencode-docview/commit/f5119b3c5da528bb587653adfde3329ff5f9d788))
+
+### Maintenance
+
+- bump typescript from 5.8.2 to 5.9.3 in the dev-tools group across 1 directory ([#4](https://github.com/dreamorosi/opencode-docview/issues/4)) ([cb796a9](https://github.com/dreamorosi/opencode-docview/commit/cb796a9bb5e8df81600a49e1f881454c27fc740c))
+
+
 ## [0.1.0](https://github.com/dreamorosi/opencode-docview/compare/ec7d5d76010bd14e6e17e43bf1e212dd88ccb3a6...v0.1.0) (2026-10-17)
 
 ### Features
