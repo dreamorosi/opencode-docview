@@ -8,7 +8,7 @@
 // No model is called: the test only opens a doc in an empty session.
 
 import { spawnSync } from "node:child_process"
-import { cpSync, mkdirSync, mkdtempSync, rmSync } from "node:fs"
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { Terminal } from "@xterm/headless"
@@ -77,6 +77,26 @@ function findRow(rows: string[], line: number, text: string) {
   return undefined
 }
 
+const fixture = () => path.join(project, "gutter.md")
+
+// Saves like most editors do: write a temp file, then rename it over the original.
+async function editFixture(from: string, to: string) {
+  const content = readFileSync(fixture(), "utf8")
+  if (!content.includes(from)) throw new Error(`Fixture does not contain "${from}"`)
+  writeFileSync(`${fixture()}.tmp`, content.replace(from, to))
+  renameSync(`${fixture()}.tmp`, fixture())
+}
+
+const crashed = (rows: string[]) =>
+  tui?.exitCode !== null || rows.some((row) => /crashed|Plugin failed/i.test(row))
+
+async function waitForReload(description: string, check: (rows: string[]) => boolean) {
+  const rows = await waitFor(description, (current) => crashed(current) || check(current))
+  if (tui?.exitCode !== null) throw new Error(`OpenCode exited (code ${tui?.exitCode}) after the file changed`)
+  if (crashed(rows)) throw new Error(`The panel crashed after the file changed: ${rows.find((row) => /crashed|Plugin failed/i.test(row))?.trim()}`)
+  return rows
+}
+
 async function main() {
   const version = opencode("--version").trim()
   console.log(`OpenCode ${version}`)
@@ -129,6 +149,21 @@ async function main() {
   if (!rendered.some((row) => row.includes("title: Gutter fixture"))) throw new Error("Frontmatter is not shown")
   console.log("✓ rendered view gutter")
 
+  await editFixture("Two blank lines above.", "Edited while open.")
+  await waitForReload("the rendered view to reload", (rows) => findRow(rows, 7, "Edited while open.") !== undefined)
+  console.log("✓ rendered view reloads on save")
+
+  // Some editors and tools save by deleting the file and writing a new one.
+  const saved = readFileSync(fixture(), "utf8")
+  rmSync(fixture())
+  await Bun.sleep(1000)
+  await waitForReload("the last version to stay visible while the file is missing", (rows) =>
+    findRow(rows, 7, "Edited while open.") !== undefined,
+  )
+  writeFileSync(fixture(), saved.replace("Edited while open.", "Recreated after delete."))
+  await waitForReload("the recreated file to load", (rows) => findRow(rows, 7, "Recreated after delete.") !== undefined)
+  console.log("✓ survives the file being deleted and recreated")
+
   const item = findRow(rendered, 10, "- item two")!
   await send(`\x1b[<0;${item.column + 1};${item.row + 1}M\x1b[<0;${item.column + 1};${item.row + 1}m`)
   await waitFor("the copy toast", (rows) => rows.some((row) => row.includes("Copied #L10")))
@@ -140,6 +175,10 @@ async function main() {
   if (!frontmatter || /\d\s+title: Gutter fixture/.test(frontmatter)) throw new Error("Frontmatter should be unnumbered")
   if (!findRow(source, 11, "continued")) throw new Error("Source view: line 11 is not next to its text")
   console.log("✓ source view gutter")
+
+  await editFixture("Recreated after delete.", "Edited again in source view.")
+  await waitForReload("the source view to reload", (rows) => findRow(rows, 7, "Edited again in source view.") !== undefined)
+  console.log("✓ source view reloads on save")
 
   if (output.includes("Plugin failed") || screen().some((row) => row.includes("Plugin failed"))) {
     throw new Error("OpenCode reported a plugin failure")
