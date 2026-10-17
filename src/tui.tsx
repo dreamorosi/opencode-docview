@@ -12,7 +12,7 @@ import {
   type MouseEvent,
   type ScrollBoxRenderable,
 } from "@opentui/core"
-import { Match, Show, Switch, createEffect, createMemo, createResource, createSignal, on, onCleanup } from "solid-js"
+import { Match, Show, Switch, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
 import { spawn } from "node:child_process"
 import { existsSync, watch } from "node:fs"
 import os from "node:os"
@@ -174,18 +174,46 @@ function DocPanel(props: {
   const [rendered, setRendered] = createSignal<MarkdownRenderable>()
   let scroll: ScrollBoxRenderable | undefined
 
-  const [content] = createResource(
-    () => (props.file ? { file: props.file, version: version() } : undefined),
-    async ({ file }) => {
-      const bytes = await context.client.file.read({
-        location: { directory: path.dirname(file) },
-        path: path.basename(file),
-      })
-      if (bytes.byteLength > MAX_BYTES) throw new Error("File is larger than 1 MB")
-      return new TextDecoder().decode(bytes)
-    },
+  // Last good text and load errors are kept apart: a failed reload (for example while an editor deletes
+  // and rewrites the file) must keep showing the last version instead of throwing out of the panel.
+  const [text, setText] = createSignal<string>()
+  const [loadError, setLoadError] = createSignal<unknown>()
+  const [loading, setLoading] = createSignal(false)
+
+  createEffect(
+    on(
+      () => props.file,
+      () => {
+        setText(undefined)
+        setLoadError(undefined)
+      },
+    ),
   )
-  const doc = createMemo(() => splitFrontmatter(content.latest ?? ""))
+
+  createEffect(
+    on([() => props.file, version], ([file]) => {
+      if (!file) return
+      let current = true
+      onCleanup(() => (current = false))
+      setLoading(true)
+      context.client.file
+        .read({ location: { directory: path.dirname(file) }, path: path.basename(file) })
+        .then((bytes) => {
+          if (bytes.byteLength > MAX_BYTES) throw new Error("File is larger than 1 MB")
+          return new TextDecoder().decode(bytes)
+        })
+        .then(
+          (value) => {
+            if (!current) return
+            setText(value)
+            setLoadError(undefined)
+          },
+          (error: unknown) => current && setLoadError(error),
+        )
+        .finally(() => current && setLoading(false))
+    }),
+  )
+  const doc = createMemo(() => splitFrontmatter(text() ?? ""))
 
   // Watch the parent directory: editors often save by renaming over the file, which breaks a file watch.
   createEffect(() => {
@@ -410,8 +438,8 @@ function DocPanel(props: {
       : context.ui.format.path(props.file)
   }
   const status = () => {
-    if (content.loading) return "loading…"
-    if (content.error) return "error"
+    if (loadError()) return text() === undefined ? "error" : "reload failed · showing last version"
+    if (loading() && text() === undefined) return "loading…"
     const parts = [rangeLabel() ?? (props.mode === "source" ? "source" : undefined), live() ? "live" : undefined]
     return parts.filter(Boolean).join(" · ")
   }
@@ -429,7 +457,9 @@ function DocPanel(props: {
           {title()}
         </text>
         <box flexGrow={1} />
-        <text fg={live() && !content.error ? theme().text.feedback.success.base : theme().text.muted}>{status()}</text>
+        <text fg={loadError() ? theme().text.feedback.warning.base : live() ? theme().text.feedback.success.base : theme().text.muted}>
+          {status()}
+        </text>
       </box>
       <scrollbox
         ref={(element: ScrollBoxRenderable) => (scroll = element)}
@@ -444,14 +474,14 @@ function DocPanel(props: {
               <text fg={theme().text.muted}>No doc open. Focus this panel and press o, or run /doc path/to/file.md</text>
             </box>
           </Match>
-          <Match when={content.error}>
+          <Match when={loadError() !== undefined && text() === undefined}>
             <box paddingLeft={2}>
               <text fg={theme().text.feedback.error.base}>
-                Could not read {title()}: {errorMessage(content.error)}
+                Could not read {title()}: {errorMessage(loadError())}
               </text>
             </box>
           </Match>
-          <Match when={content.latest !== undefined && props.mode === "source"}>
+          <Match when={text() !== undefined && props.mode === "source"}>
             <line_number
               ref={setGutter}
               width="100%"
@@ -474,7 +504,7 @@ function DocPanel(props: {
               />
             </line_number>
           </Match>
-          <Match when={content.latest !== undefined}>
+          <Match when={text() !== undefined}>
             <Show when={doc().frontmatter}>
               <box paddingLeft={gutterWidth()} paddingBottom={1}>
                 <text fg={theme().text.muted}>{doc().frontmatter}</text>
