@@ -1,6 +1,6 @@
 {
   "name": "opencode-docview",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Markdown doc viewer side panel for the OpenCode TUI, with line numbers and GitHub-style range copying",
   "type": "module",
   "license": "Apache-2.0",

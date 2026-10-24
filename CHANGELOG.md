@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/dreamorosi/opencode-docview/compare/v0.1.1...v1.0.0) (2026-10-24)
+
+### Bug Fixes
+
+- support OpenCode 2.1 and drop 2.0 ([#9](https://github.com/dreamorosi/opencode-docview/issues/9)) ([aeedcf1](https://github.com/dreamorosi/opencode-docview/commit/aeedcf1d018fa01d9f41ceeb1e654023a558e402))
+
+
 ## [0.1.1](https://github.com/dreamorosi/opencode-docview/compare/v0.1.0...v0.1.1) (2026-10-17)
 
 ### Bug Fixes
