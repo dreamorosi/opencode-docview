@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test"
 import { readFileSync } from "node:fs"
 import { type MarkdownRenderable, SyntaxStyle, getTreeSitterClient } from "@opentui/core"
-import { testRender } from "@opentui/solid"
+import { testRender, useRenderer } from "@opentui/solid"
 import { type Anchor, RENDERED_MARKDOWN, renderedAnchors, splitFrontmatter } from "../../src/lib.js"
 
 // Renders the fixture with the same OpenTUI version and <markdown> options the plugin uses, then checks that
@@ -23,7 +23,7 @@ async function render(width: number) {
         width="100%"
         paddingLeft={GUTTER}
         content={body}
-        syntaxStyle={SyntaxStyle.create()}
+        syntaxStyle={SyntaxStyle.create(useRenderer().nativeScene)}
         treeSitterClient={getTreeSitterClient()}
         {...RENDERED_MARKDOWN}
       />

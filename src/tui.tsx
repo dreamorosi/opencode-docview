@@ -579,7 +579,7 @@ function createSyntax(context: Context) {
       rule(["markup.list.checked"], theme.text.feedback.success.base),
       rule(["markup.underline"], theme.text.base, { underline: true }),
       rule(["docview.frontmatter"], theme.text.muted),
-    ])
+    ], context.renderer.nativeScene)
     // Defer destroy until the markdown renderable has switched to the replacement style.
     onCleanup(() => setTimeout(() => style.destroy(), 0))
     return style
